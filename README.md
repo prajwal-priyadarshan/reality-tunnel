@@ -11,6 +11,7 @@ One script builds the server. Your laptop or phone connects in a minute.
 ![Protocol](https://img.shields.io/badge/VLESS-Reality-8957e5)
 ![Platforms](https://img.shields.io/badge/macOS%20%7C%20Windows%20%7C%20Android%20%7C%20iOS-supported-555)
 
+[**Step-by-step guide**](GUIDE.md) •
 [Quick start](#quick-start) •
 [Mac](#mac) •
 [Windows](#windows) •
@@ -65,9 +66,9 @@ flowchart LR
 
 ## Quick start
 
-> [!NOTE]
-> This repo is **private**. Ask the owner to add your GitHub account
-> (*Settings → Collaborators → Add people*) before you start.
+> [!TIP]
+> **New to Azure or the terminal?** Follow the **[step-by-step guide](GUIDE.md)**. It covers
+> signing up for Azure for Students, Cloud Shell, every click and what you should see.
 
 **You need:** an Azure subscription
 ([Azure for Students](https://azure.microsoft.com/en-in/free/students/) works with your
@@ -77,9 +78,8 @@ college email and no card), plus a Mac, a Windows PC or a phone. It takes about 
 
 1. Open **[shell.azure.com](https://shell.azure.com)** and choose **Bash**. If asked, pick
    *No storage account required* and your subscription.
-2. Sign in to GitHub and run the deploy script:
+2. Run the deploy script:
    ```bash
-   gh auth login
    git clone https://github.com/prajwal-priyadarshan/reality-tunnel.git && cd reality-tunnel
    bash azure/deploy.sh
    ```
