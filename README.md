@@ -11,8 +11,7 @@ One script builds the server. Your laptop or phone connects in a minute.
 ![Protocol](https://img.shields.io/badge/VLESS-Reality-8957e5)
 ![Platforms](https://img.shields.io/badge/macOS%20%7C%20Windows%20%7C%20Android%20%7C%20iOS-supported-555)
 
-[**Step-by-step guide**](GUIDE.md) •
-[Quick start](#quick-start) •
+[**Setup**](#setup-step-by-step) •
 [Mac](#mac) •
 [Windows](#windows) •
 [Phone](#android--iphone) •
@@ -64,58 +63,145 @@ flowchart LR
 
 ---
 
-## Quick start
+## Setup, step by step
 
-> [!TIP]
-> **New to Azure or the terminal?** Follow the **[step-by-step guide](GUIDE.md)**. It covers
-> signing up for Azure for Students, Cloud Shell, every click and what you should see.
+No credit card and no coding knowledge needed. About **20 minutes** in all.
 
-**You need:** an Azure subscription
-([Azure for Students](https://azure.microsoft.com/en-in/free/students/) works with your
-college email and no card), plus a Mac, a Windows PC or a phone. It takes about 15 minutes.
+**Have ready:** your **college email**, a phone that gets SMS, and the device you want to
+use (Mac, Windows PC, Android or iPhone).
 
-### Step 1: Create the server (any OS, in the browser, ~5 min)
+| Step | What you do | Time |
+|---|---|---|
+| [1](#step-1-get-a-free-azure-for-students-account) | Get a free Azure for Students account | 5 min, one time |
+| [2](#step-2-open-azure-cloud-shell) | Open Azure Cloud Shell | 2 min |
+| [3](#step-3-create-your-server) | Create your server | 5 min |
+| [4](#step-4-save-your-link) | Save your link | 1 min |
+| [5](#step-5-connect-your-device) | Connect your device | 2 to 5 min |
+| [6](#step-6-check-it-works) | Check it works | 1 min |
 
-1. Open **[shell.azure.com](https://shell.azure.com)** and choose **Bash**. If asked, pick
-   *No storage account required* and your subscription.
-2. Run the deploy script:
+> [!IMPORTANT]
+> Do steps 1 to 4 on **mobile data or home Wi-Fi**, where Azure isn't blocked. After that,
+> the tunnel works on college Wi-Fi.
+
+### Step 1: Get a free Azure for Students account
+
+You get **USD 100 of credit for 12 months**. This server uses about USD 11 a month, so the
+credit lasts the year. Skip this step if you already have Azure for Students.
+
+1. Go to **[azure.microsoft.com/free/students](https://azure.microsoft.com/en-in/free/students/)**
+   and click **Start free**.
+2. Sign in with a Microsoft account, or click **Create one** (any email works, even Gmail).
+3. Fill in the form:
+   - **School email address:** your **college email** (for example `name@college.edu.in`)
+   - name, country (**India**) and date of birth
+   - your phone number, then the SMS code you receive
+4. Open the verification email in your **college inbox** and click the link. Check spam if
+   it doesn't arrive in 10 minutes. If your college isn't recognised, choose to verify with
+   a student ID instead.
+5. Accept the agreement and click **Sign up**. You land on the
+   [Azure portal](https://portal.azure.com).
+
+> [!NOTE]
+> You are never charged. When the credit or the 12 months run out, everything just stops
+> until you renew (you can renew each year while you're a student).
+
+### Step 2: Open Azure Cloud Shell
+
+Cloud Shell is a terminal inside your browser with the Azure tools already installed, so
+you install nothing.
+
+1. Go to **[shell.azure.com](https://shell.azure.com)** and sign in with the same account.
+2. Choose **Bash** (not PowerShell).
+3. If you see **Getting started**: pick **No storage account required**, choose the
+   **Azure for Students** subscription, then click **Apply**.
+4. Wait for a prompt like `yourname@Azure:~$`.
+
+To paste into Cloud Shell: `Ctrl+Shift+V` on Windows, `Cmd+V` on Mac, or right-click →
+**Paste**.
+
+### Step 3: Create your server
+
+1. Paste these two commands into Cloud Shell, pressing **Enter** after each:
    ```bash
    git clone https://github.com/prajwal-priyadarshan/reality-tunnel.git && cd reality-tunnel
+   ```
+   ```bash
    bash azure/deploy.sh
    ```
-3. Check the **live prices** it shows and type `y`. It then:
-   - checks which regions your subscription allows
-   - creates a small Ubuntu 24.04 VM, trying sizes until one has capacity
-   - opens **only port 443**
-   - installs sing-box and generates fresh keys on the server
-   - prints your **`vless://…` link**
+2. It shows a table of **live prices**, then asks `Create the server now? [y/N]`. Type
+   **`y`** and press **Enter**.
+3. Wait **3 to 6 minutes** while it works. You'll see lines like:
+   ```
+   ==> Creating resource group reality-vpn-rg in centralindia
+   ==> Creating VM reality-vpn (Standard_B1s)
+      Standard_B1s not available here (SkuNotAvailable). Trying the next size…
+   ==> Creating VM reality-vpn (Standard_B2ats_v2)
+   ==> Opening TCP 443 only (SSH stays closed)
+   ```
+   "Not available here" is normal: the script just tries the next size.
+4. At the end it prints **your link**:
+   ```
+   Your connection link (treat it like a password):
+   vless://1b2c3d4e-....@20.x.x.x:443?security=reality&sni=www.microsoft.com&...
+   ```
+
+<details>
+<summary><b>What the script created in your Azure account</b></summary>
+
+| Created | Why |
+|---|---|
+| Resource group `reality-vpn-rg` | A folder for everything below, so it's easy to delete later |
+| Ubuntu 24.04 VM `reality-vpn` | Your server, in Pune (Central India) by default |
+| Static public IP | The address your devices connect to |
+| 30 GB disk | The server's drive |
+| Network rule for port 443 | The only open port. SSH and everything else stay closed |
+
+On first boot the server installed **sing-box**, made **new private keys** that only your
+server knows, and wrote your link.
+</details>
+
+> [!TIP]
+> If it says your region isn't allowed, it lists the regions you **can** use. Run it again
+> with one of them, for example `LOCATION=southindia bash azure/deploy.sh`.
+
+### Step 4: Save your link
+
+The link is the **only thing** your devices need. Anyone who has it can use your server,
+so treat it like a password.
+
+1. Select the whole `vless://…` line (it's one long line) and copy it.
+2. Save it somewhere private, such as your phone's notes or a message to yourself.
 
 > [!WARNING]
-> **Copy the link right away.** It works like a password, and Cloud Shell sessions are
-> temporary. To get it again later, run this in Cloud Shell:
+> **Lost it, or closed Cloud Shell too early?** Open Cloud Shell again and run:
 > ```bash
-> az vm run-command invoke -g reality-vpn-rg -n reality-vpn --command-id RunShellScript \
->   --scripts 'cat /root/vless_link.txt' --query 'value[0].message' -o tsv
+> az vm run-command invoke -g reality-vpn-rg -n reality-vpn --command-id RunShellScript --scripts 'cat /root/vless_link.txt' --query 'value[0].message' -o tsv
 > ```
 
-<sub>Different region? `LOCATION=southindia bash azure/deploy.sh`.</sub>
+### Step 5: Connect your device
 
-### Step 2: Set up your device
+The same link works on several devices.
 
-| Device | Guide | Time |
+| Device | Easiest way | Full setup (all routing fixes) |
 |---|---|---|
-| Mac | [Mac setup](#mac) | 3 min |
-| Windows 10/11 | [Windows setup](#windows) | 5 min |
-| Android / iPhone | [Phone setup](#android--iphone) | 2 min |
+| **Android / iPhone** | Install **Hiddify** → copy your link → tap **+** → **Add from clipboard** → tap connect | [Phone section](#android--iphone) |
+| **Windows 10/11** | Install [Hiddify](https://github.com/hiddify/hiddify-app/releases) → **+** → **Add from clipboard** → connect | [Windows section](#windows) |
+| **Mac** | Follow the [Mac section](#mac) (3 commands) | [Mac section](#mac) |
 
-### Step 3: Check it works
+### Step 6: Check it works
 
-You should see **your server's region** as the exit IP, and `200` for the sites you care
-about. Each guide includes its own test command.
+With the tunnel on:
+
+1. Open **[ipinfo.io](https://ipinfo.io)**. It should show **Microsoft Corporation** and
+   **Pune** (or your server's region).
+2. Open the sites that were blocked before. They should load.
 
 ---
 
 ## Mac
+
+Open **Terminal** (`Cmd+Space`, type *Terminal*). If you don't have
+[Homebrew](https://brew.sh), install it first. Then:
 
 ```bash
 brew install sing-box
@@ -290,6 +376,7 @@ file**, so you can't be billed beyond the credit.
 
 | Action | How |
 |---|---|
+| Check remaining credit | [Azure portal](https://portal.azure.com) → search **Subscriptions** → **Azure for Students** |
 | Pause | Azure portal → Virtual machines → `reality-vpn` → **Stop**. The IP still costs ~$3.65/month |
 | Delete everything | `bash azure/destroy.sh` in Cloud Shell. **This can't be undone** |
 
@@ -302,9 +389,11 @@ file**, so you can't be billed beyond the credit.
 
 | Symptom | Fix |
 |---|---|
+| Sign-up says your college isn't recognised | Choose to verify with a student ID or document |
+| Cloud Shell asks to create storage | Pick **No storage account required** |
 | "Region not allowed" | Use a region from the list it prints: `LOCATION=… bash azure/deploy.sh` |
 | All sizes "not available" | Try another region, or `SIZES="Standard_B2s" bash azure/deploy.sh` |
-| Setup didn't finish in time | Wait a few minutes, then fetch the link with the command in [Quick start](#quick-start) |
+| Setup didn't finish in time | Wait a few minutes, then fetch the link with the command in [Step 4](#step-4-save-your-link) |
 </details>
 
 <details>
@@ -313,9 +402,11 @@ file**, so you can't be billed beyond the credit.
 | Symptom | Fix |
 |---|---|
 | `ERR_CONNECTION_RESET` in Chrome (proxy mode) | Chrome is bypassing the system proxy. Use whole-device mode |
+| Hiddify connects but no site loads | The link was probably cut off when copying. Delete the profile and add the full link again |
 | Every site fails with `reality verification failed` | Client and server don't match. Regenerate the configs from your link |
 | One site returns **403** through the tunnel | It blocks cloud IPs. Add it to `DIRECT_FRAGMENT` |
 | A `DIRECT` site times out | Your network blocks it. Remove it from `DIRECT` |
+| Was working, then stopped | Azure portal → check the VM `reality-vpn` is **Running** and you still have credit |
 | Slow in whole-device mode | Make sure your configs were generated by the current version (MTU 1500, QUIC blocked) |
 </details>
 
