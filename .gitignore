@@ -1,0 +1,4 @@
+# Your keys, link and generated configs: never commit these.
+client/out/
+*.log
+.DS_Store
