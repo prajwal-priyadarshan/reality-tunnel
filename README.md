@@ -295,7 +295,7 @@ file**, so you can't be billed beyond the credit.
 
 ---
 
-## 🛠️ Troubleshooting
+## 🔧 Troubleshooting
 
 <details>
 <summary><b>Creating the server</b></summary>
