@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛰️ reality-tunnel
+# reality-tunnel
 
 **Your own private tunnel on Azure, for Wi-Fi that blocks sites and VPNs.**
 
@@ -11,19 +11,19 @@ One script builds the server. Your laptop or phone connects in a minute.
 ![Protocol](https://img.shields.io/badge/VLESS-Reality-8957e5)
 ![Platforms](https://img.shields.io/badge/macOS%20%7C%20Windows%20%7C%20Android%20%7C%20iOS-supported-555)
 
-[Quick start](#-quick-start) •
-[Mac](#-mac) •
-[Windows](#-windows) •
-[Phone](#-android--iphone) •
-[Routing](#-routing) •
-[Cost](#-cost) •
-[Troubleshooting](#-troubleshooting)
+[Quick start](#quick-start) •
+[Mac](#mac) •
+[Windows](#windows) •
+[Phone](#android--iphone) •
+[Routing](#routing) •
+[Cost](#cost) •
+[Troubleshooting](#troubleshooting)
 
 </div>
 
 ---
 
-## ✨ Why this exists
+## Why this exists
 
 College and office networks often block sites by reading the **site name in the HTTPS
 handshake** (SNI filtering), allow only ports 80/443, and recognise commercial VPNs
@@ -32,11 +32,11 @@ apart from normal web browsing.
 
 | | |
 |---|---|
-| 🕵️ **Hard to detect** | VLESS + Reality on port 443. The firewall sees what looks like an ordinary visit to `www.microsoft.com`. |
-| 📍 **Your own IP** | A static IP in the region you choose (for example India), used only by you. Good for brokers like Zerodha that check login IPs. |
-| ⚡ **Split routing** | Unblocked heavy sites (Google, YouTube…) skip the tunnel. Sites that refuse cloud IPs go direct with a split handshake. |
-| 🔒 **Locked down** | Only TCP 443 is open, with no SSH. Keys are generated **on your server** at first boot. |
-| 💸 **Student-friendly** | Runs on Azure for Students credit. No credit card needed. |
+| **Hard to detect** | VLESS + Reality on port 443. The firewall sees what looks like an ordinary visit to `www.microsoft.com`. |
+| **Your own IP** | A static IP in the region you choose (for example India), used only by you. Good for brokers like Zerodha that check login IPs. |
+| **Split routing** | Unblocked heavy sites (Google, YouTube…) skip the tunnel. Sites that refuse cloud IPs go direct with a split handshake. |
+| **Locked down** | Only TCP 443 is open, with no SSH. Keys are generated **on your server** at first boot. |
+| **Student-friendly** | Runs on Azure for Students credit. No credit card needed. |
 
 > [!IMPORTANT]
 > Running your own VPN is legal in India, but it may break your institution's IT
@@ -45,16 +45,16 @@ apart from normal web browsing.
 
 ---
 
-## 🧭 How it works
+## How it works
 
 ```mermaid
 flowchart LR
-    L["💻 Your laptop / phone<br/><sub>sing-box client</sub>"]
-    F{{"🧱 College firewall"}}
-    S["☁️ Your Azure VM<br/><sub>sing-box · Reality · port 443</sub>"]
-    T["📈 Kite · Groww · Screener<br/>Instagram · everything else"]
-    D["▶️ Google · YouTube · GitHub<br/><sub>unblocked sites</sub>"]
-    H["🏦 HDFC InvestRight<br/><sub>blocks cloud IPs</sub>"]
+    L["Your laptop / phone<br/><sub>sing-box client</sub>"]
+    F{{"College firewall"}}
+    S["Your Azure VM<br/><sub>sing-box · Reality · port 443</sub>"]
+    T["Kite · Groww · Screener<br/>Instagram · everything else"]
+    D["Google · YouTube · GitHub<br/><sub>unblocked sites</sub>"]
+    H["HDFC InvestRight<br/><sub>blocks cloud IPs</sub>"]
 
     L -- "looks like HTTPS to microsoft.com" --> F --> S --> T
     L -. "direct (faster)" .-> D
@@ -63,7 +63,7 @@ flowchart LR
 
 ---
 
-## 🚀 Quick start
+## Quick start
 
 > [!NOTE]
 > This repo is **private**. Ask the owner to add your GitHub account
@@ -73,7 +73,7 @@ flowchart LR
 ([Azure for Students](https://azure.microsoft.com/en-in/free/students/) works with your
 college email and no card), plus a Mac, a Windows PC or a phone. It takes about 15 minutes.
 
-### 1️⃣ Create the server (any OS, in the browser, ~5 min)
+### Step 1: Create the server (any OS, in the browser, ~5 min)
 
 1. Open **[shell.azure.com](https://shell.azure.com)** and choose **Bash**. If asked, pick
    *No storage account required* and your subscription.
@@ -84,11 +84,11 @@ college email and no card), plus a Mac, a Windows PC or a phone. It takes about 
    bash azure/deploy.sh
    ```
 3. Check the **live prices** it shows and type `y`. It then:
-   - ✅ checks which regions your subscription allows
-   - ✅ creates a small Ubuntu 24.04 VM, trying sizes until one has capacity
-   - ✅ opens **only port 443**
-   - ✅ installs sing-box and generates fresh keys on the server
-   - ✅ prints your **`vless://…` link**
+   - checks which regions your subscription allows
+   - creates a small Ubuntu 24.04 VM, trying sizes until one has capacity
+   - opens **only port 443**
+   - installs sing-box and generates fresh keys on the server
+   - prints your **`vless://…` link**
 
 > [!WARNING]
 > **Copy the link right away.** It works like a password, and Cloud Shell sessions are
@@ -100,22 +100,22 @@ college email and no card), plus a Mac, a Windows PC or a phone. It takes about 
 
 <sub>Different region? `LOCATION=southindia bash azure/deploy.sh`.</sub>
 
-### 2️⃣ Set up your device
+### Step 2: Set up your device
 
 | Device | Guide | Time |
 |---|---|---|
-| 🍎 Mac | [Mac setup](#-mac) | 3 min |
-| 🪟 Windows 10/11 | [Windows setup](#-windows) | 5 min |
-| 📱 Android / iPhone | [Phone setup](#-android--iphone) | 2 min |
+| Mac | [Mac setup](#mac) | 3 min |
+| Windows 10/11 | [Windows setup](#windows) | 5 min |
+| Android / iPhone | [Phone setup](#android--iphone) | 2 min |
 
-### 3️⃣ Check it works
+### Step 3: Check it works
 
 You should see **your server's region** as the exit IP, and `200` for the sites you care
 about. Each guide includes its own test command.
 
 ---
 
-## 🍎 Mac
+## Mac
 
 ```bash
 brew install sing-box
@@ -149,7 +149,7 @@ bash client/diagnose.sh
 ```
 "handshake reset → SNI filter" with only ports 80/443 open is exactly what this tunnel
 gets around. Sites that show **OK** can go in the `DIRECT` list for speed
-(see [Routing](#-routing)).
+(see [Routing](#routing)).
 </details>
 
 <details>
@@ -164,7 +164,7 @@ Mac's security. Undo it with `sudo rm /etc/sudoers.d/sing-box`.
 
 ---
 
-## 🪟 Windows
+## Windows
 
 > [!TIP]
 > Want the quickest route? Skip to **[Option B](#option-b--app-only)**: install an app and
@@ -232,7 +232,7 @@ then **Connect**.
 
 ---
 
-## 📱 Android / iPhone
+## Android / iPhone
 
 | | App | How |
 |---|---|---|
@@ -245,7 +245,7 @@ then **Connect**.
 
 ---
 
-## 🔀 Routing
+## Routing
 
 All routing rules live in **`client/make_client_config.py`**:
 
@@ -276,7 +276,7 @@ python client\make_client_config.py (Get-Content client\out\vless_link.txt)     
 
 ---
 
-## 💸 Cost
+## Cost
 
 `deploy.sh` shows **live Azure prices** before creating anything. Central India, Nov 2026:
 
@@ -290,12 +290,12 @@ file**, so you can't be billed beyond the credit.
 
 | Action | How |
 |---|---|
-| ⏸️ Pause | Azure portal → Virtual machines → `reality-vpn` → **Stop**. The IP still costs ~$3.65/month |
-| 🗑️ Delete everything | `bash azure/destroy.sh` in Cloud Shell. **This can't be undone** |
+| Pause | Azure portal → Virtual machines → `reality-vpn` → **Stop**. The IP still costs ~$3.65/month |
+| Delete everything | `bash azure/destroy.sh` in Cloud Shell. **This can't be undone** |
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 <details>
 <summary><b>Creating the server</b></summary>
@@ -304,7 +304,7 @@ file**, so you can't be billed beyond the credit.
 |---|---|
 | "Region not allowed" | Use a region from the list it prints: `LOCATION=… bash azure/deploy.sh` |
 | All sizes "not available" | Try another region, or `SIZES="Standard_B2s" bash azure/deploy.sh` |
-| Setup didn't finish in time | Wait a few minutes, then fetch the link with the command in [Quick start](#-quick-start) |
+| Setup didn't finish in time | Wait a few minutes, then fetch the link with the command in [Quick start](#quick-start) |
 </details>
 
 <details>
@@ -339,20 +339,20 @@ The proxy setting can stay switched on if the tunnel crashes.
 
 ---
 
-## 📂 Repo layout
+## Repo layout
 
 ```
 reality-tunnel/
-├── azure/
-│   ├── deploy.sh              # create the server (run in Cloud Shell)
-│   └── destroy.sh             # delete everything
-├── server/
-│   └── cloud-init.sh          # first boot on the VM: sing-box + fresh keys
-└── client/
-    ├── make_client_config.py  # link → sing-box configs (routing rules live here)
-    ├── connect.sh             # start the tunnel (proxy or tun)   · Mac/Linux
-    ├── test.sh                # check exit IP and sites           · Mac/Linux
-    └── diagnose.sh            # how your network blocks things    · Mac/Linux
+ azure/
+    deploy.sh              # create the server (run in Cloud Shell)
+    destroy.sh             # delete everything
+ server/
+    cloud-init.sh          # first boot on the VM: sing-box + fresh keys
+ client/
+     make_client_config.py  # link → sing-box configs (routing rules live here)
+     connect.sh             # start the tunnel (proxy or tun)   · Mac/Linux
+     test.sh                # check exit IP and sites           · Mac/Linux
+     diagnose.sh            # how your network blocks things    · Mac/Linux
 ```
 
 <details>
