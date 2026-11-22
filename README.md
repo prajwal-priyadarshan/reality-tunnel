@@ -18,6 +18,12 @@ sites and commercial VPNs. One script creates the server. Your Mac connects with
 
 ---
 
+## Getting access
+This repo is **private**. Ask the owner to add your GitHub account
+(Settings → Collaborators → Add people). To clone it in Azure Cloud Shell, sign in to
+GitHub there first with `gh auth login` (already installed in Cloud Shell), then use the
+`git clone` commands below.
+
 ## What you need
 - An Azure subscription. **Azure for Students** works with no credit card:
   sign up at https://azure.microsoft.com/en-in/free/students/ with your college email.
@@ -41,7 +47,7 @@ you can't be billed beyond the credit.
 ## Step 1: Check your network (optional, 1 min)
 On the restricted Wi-Fi, without any VPN:
 ```bash
-git clone <this-repo-url> reality-tunnel && cd reality-tunnel
+git clone https://github.com/prajwal-priyadarshan/reality-tunnel.git && cd reality-tunnel
 bash client/diagnose.sh
 ```
 "handshake reset → SNI filter" with only ports 80/443 open is exactly what this tunnel
@@ -52,7 +58,7 @@ gets around.
    **No storage account required** and your subscription.
 2. Run:
    ```bash
-   git clone <this-repo-url> reality-tunnel && cd reality-tunnel
+   git clone https://github.com/prajwal-priyadarshan/reality-tunnel.git && cd reality-tunnel
    bash azure/deploy.sh
    ```
    Other region? `LOCATION=southindia bash azure/deploy.sh`.
