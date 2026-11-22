@@ -27,7 +27,8 @@ GitHub there first with `gh auth login` (already installed in Cloud Shell), then
 ## What you need
 - An Azure subscription. **Azure for Students** works with no credit card:
   sign up at https://azure.microsoft.com/en-in/free/students/ with your college email.
-- A Mac with [Homebrew](https://brew.sh).
+- A **Mac** with [Homebrew](https://brew.sh), or a **Windows 10/11** PC
+  (see [Windows](#windows)). Phones: see [Android / iPhone](#android--iphone).
 - About 15 minutes.
 
 ## Cost
@@ -51,7 +52,7 @@ git clone https://github.com/prajwal-priyadarshan/reality-tunnel.git && cd reali
 bash client/diagnose.sh
 ```
 "handshake reset → SNI filter" with only ports 80/443 open is exactly what this tunnel
-gets around.
+gets around. (`diagnose.sh` is for Mac/Linux. On Windows, skip this step.)
 
 ## Step 2: Create the server (Azure Cloud Shell, 5 min)
 1. Go to https://shell.azure.com and choose **Bash**. If asked, pick
@@ -77,7 +78,11 @@ gets around.
      --scripts 'cat /root/vless_link.txt' --query 'value[0].message' -o tsv
    ```
 
+Step 2 is the same for everyone: Cloud Shell runs in the browser, so it works from
+Windows, Mac or Linux.
+
 ## Step 3: Set up your Mac (3 min)
+On Windows? Go to [Windows](#windows) instead.
 ```bash
 brew install sing-box
 cd reality-tunnel
@@ -100,7 +105,81 @@ bash client/test.sh        # or: bash client/test.sh tun
 ```
 You should see your server's region and `code=200` for each site.
 
-**Phone:** install **Hiddify** (iOS/Android) and import the same `vless://` link.
+---
+
+## Windows
+Do Step 2 (create the server) first. You need the `vless://` link it prints.
+
+### Option A: full setup with all the routing fixes (recommended)
+**1. Install the tools** in **PowerShell** (Start menu → type "PowerShell"):
+```powershell
+winget install --id Git.Git -e
+winget install --id Python.Python.3.12 -e
+winget install --id SagerNet.sing-box -e
+```
+Close and reopen PowerShell afterwards so the new commands are found. Check with:
+```powershell
+sing-box version
+python --version
+```
+- If `winget` can't find sing-box, download `sing-box-<version>-windows-amd64.zip` from
+  https://github.com/SagerNet/sing-box/releases. Extract `sing-box.exe` into the
+  `reality-tunnel` folder and use `.\sing-box.exe` instead of `sing-box` below.
+- If `python` opens the Microsoft Store, use `py` instead.
+
+**2. Get the repo and make your configs:**
+```powershell
+cd $HOME\Documents
+git clone https://github.com/prajwal-priyadarshan/reality-tunnel.git
+cd reality-tunnel
+python client\make_client_config.py 'vless://...paste your link...'
+```
+Keep the link in **single quotes**: PowerShell treats `&` specially. This writes
+`client\out\` (git-ignored).
+
+**3. Connect.** Pick one:
+
+*Proxy mode* (browsers; no admin needed). Windows' proxy setting is switched on while
+it runs and switched off when you stop it:
+```powershell
+sing-box run -c client\out\config-proxy.json
+```
+*Whole-PC mode* (every app; use this if Chrome ignores the proxy). Open **PowerShell as
+Administrator** (right-click → *Run as administrator*), `cd` to the folder, then:
+```powershell
+sing-box run -c client\out\config-tun.json
+```
+If Windows Defender Firewall asks about `sing-box`, click **Allow**. Keep the window
+open and press **Ctrl+C** to disconnect.
+
+**4. Test** in a second PowerShell window (use `curl.exe`, not `curl`):
+```powershell
+curl.exe -s -x http://127.0.0.1:2080 https://ipinfo.io/json
+curl.exe -s -o NUL -w "%{http_code}`n" -x http://127.0.0.1:2080 https://kite.zerodha.com
+```
+In whole-PC mode, leave out `-x http://127.0.0.1:2080`. You should see your server's
+region and `200`.
+
+**Regenerate after editing the routing lists:**
+```powershell
+python client\make_client_config.py (Get-Content client\out\vless_link.txt)
+```
+
+### Option B: app only (simplest, without the routing fixes)
+Install **Hiddify** (https://github.com/hiddify/hiddify-app/releases, `Windows-Setup-x64.exe`)
+or **v2rayN**. Copy your `vless://` link, choose **Add from clipboard**, then **Connect**.
+The basic tunnel works, but without this repo's tweaks: HDFC-type sites may return 403,
+and pages can be slower because of QUIC.
+
+---
+
+## Android / iPhone
+- **Simplest:** install **Hiddify** (Play Store / App Store) and add the `vless://`
+  link from the clipboard.
+- **With all the routing fixes:** install the official **sing-box** app (*sing-box* on
+  the App Store, or SFA from the Play Store / GitHub). Send `client/out/config-tun.json`
+  to your phone, then in the app go to **Profiles → New Profile → Import** and pick the
+  file. Treat the file like a password: don't send it over chats or email you don't trust.
 
 ---
 
@@ -131,7 +210,10 @@ Also built in:
 | One site returns 403 through the tunnel | It blocks cloud IPs. Add it to `DIRECT_FRAGMENT` |
 | A `DIRECT` site times out | Your network blocks it. Remove it from `DIRECT` |
 | Every site fails, log says `reality verification failed` | Client and server keys or versions don't match. Regenerate the configs from the link |
-| No internet after a crash in proxy mode | System Settings → Network → Wi-Fi → Details → Proxies → turn them off |
+| No internet after a crash in proxy mode (Mac) | System Settings → Network → Wi-Fi → Details → Proxies → turn them off |
+| No internet after a crash in proxy mode (Windows) | Settings → Network & internet → Proxy → *Use a proxy server* → Off |
+| Windows: `sing-box` not recognised | Reopen PowerShell after `winget install`, or use the downloaded `.\sing-box.exe` |
+| Windows: tun mode error "access denied" / "wintun" | Run PowerShell **as Administrator** |
 | `connect.sh tun` asks for a password every time | Optional: `echo "$USER ALL=(root) NOPASSWD: $(command -v sing-box)" \| sudo tee /etc/sudoers.d/sing-box` (lets any program running as you start sing-box as root) |
 
 ## Stop paying / delete
