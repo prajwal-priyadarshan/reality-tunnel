@@ -7,6 +7,7 @@
 #     SIZES="Standard_B1s Standard_B2ats_v2 Standard_B2als_v2 Standard_B1ms"   (tried in order)
 set -euo pipefail
 
+LOCATION_SET="${LOCATION:-}"
 LOCATION="${LOCATION:-centralindia}"
 RG="${RG:-reality-vpn-rg}"
 NAME="${NAME:-reality-vpn}"
@@ -28,8 +29,18 @@ say "Subscription: $SUB"
 # Student subscriptions often restrict regions with a policy. Check before creating anything.
 ALLOWED=$(az policy assignment list --query "[].parameters.listOfAllowedLocations.value[]" -o tsv 2>/dev/null | sort -u | tr '\n' ' ')
 if [ -n "$ALLOWED" ] && ! echo " $ALLOWED " | grep -q " $LOCATION "; then
-  die "Region '$LOCATION' is not allowed on this subscription. Allowed: $ALLOWED
+  [ -n "$LOCATION_SET" ] && die "Region '$LOCATION' is not allowed on this subscription. Allowed: $ALLOWED
 Re-run with e.g.: LOCATION=<one of those> bash azure/deploy.sh"
+  # No region chosen: pick the allowed region closest to India.
+  for R in centralindia southindia westindia jioindiacentral jioindiawest uaenorth uaecentral \
+           qatarcentral israelcentral malaysiawest southeastasia eastasia indonesiacentral \
+           koreacentral japaneast japanwest australiaeast swedencentral italynorth austriaeast \
+           polandcentral francecentral germanywestcentral uksouth westeurope northeurope; do
+    if echo " $ALLOWED " | grep -q " $R "; then NEW="$R"; break; fi
+  done
+  [ -n "${NEW:-}" ] || NEW=$(echo "$ALLOWED" | awk '{print $1}')
+  say "India regions aren't allowed on this subscription (allowed: $ALLOWED). Using $NEW, the closest."
+  LOCATION="$NEW"
 fi
 
 # Live prices from the public Azure Retail Prices API (USD, Linux, pay-as-you-go).
@@ -55,13 +66,27 @@ say "Registering Compute and Network providers (one-time, can take a minute)"
 az provider register -n Microsoft.Compute --wait
 az provider register -n Microsoft.Network --wait
 
+RG_LOC=$(az group show -n "$RG" --query location -o tsv 2>/dev/null || true)
+if [ -n "$RG_LOC" ] && [ "$RG_LOC" != "$LOCATION" ]; then
+  die "Resource group $RG already exists in $RG_LOC (from an earlier attempt). Either:
+  LOCATION=$RG_LOC bash azure/deploy.sh     (continue in $RG_LOC)
+  bash azure/destroy.sh                     (delete it, then run deploy.sh again)"
+fi
 say "Creating resource group $RG in $LOCATION"
 az group create -n "$RG" -l "$LOCATION" -o none
 
 sed "s/__COVER__/$COVER/" "$HERE/../server/cloud-init.sh" > "$WORK/cloud-init.sh"
 
 CREATED=""
+# Re-running after a failed or interrupted attempt: reuse a VM that already exists.
+if az vm show -g "$RG" -n "$NAME" -o none 2>/dev/null; then
+  CREATED=$(az vm show -g "$RG" -n "$NAME" --query hardwareProfile.vmSize -o tsv)
+  say "VM $NAME already exists ($CREATED). Reusing it."
+fi
+# Errors that mean "no room for this size here": move on to the next size.
+NEXT_SIZE='SkuNotAvailable|QuotaExceeded|NotAvailableForSubscription|OperationNotAllowed|AllocationFailed|ZonalAllocationFailed|OverconstrainedAllocationRequest|OverconstrainedZonalAllocationRequest'
 for SIZE in $SIZES; do
+  [ -n "$CREATED" ] && break
   say "Creating VM $NAME ($SIZE) — 2-4 minutes"
   # --debug output goes to a file: the CLI sometimes crashes while printing deployment
   # errors, so we grep the real error code from the log instead.
@@ -74,14 +99,24 @@ for SIZE in $SIZES; do
       -o none --debug > "$WORK/create.log" 2>&1; then
     CREATED="$SIZE"; break
   fi
-  CODE=$(grep -oE 'SkuNotAvailable|QuotaExceeded|NotAvailableForSubscription|RequestDisallowedByPolicy|OperationNotAllowed|InvalidTemplateDeployment' "$WORK/create.log" | head -1 || true)
-  case "$CODE" in
-    SkuNotAvailable|QuotaExceeded|NotAvailableForSubscription|OperationNotAllowed)
-      echo "   $SIZE not available here ($CODE). Trying the next size…" ;;
-    *)
-      grep -oE '"message": ?"[^"]{0,300}' "$WORK/create.log" | sort -u | head -5
-      die "VM creation failed (${CODE:-unknown error}). Nothing else was changed; delete with: bash azure/destroy.sh" ;;
-  esac
+  # The CLI can crash after Azure has already created the VM. Check before giving up.
+  if az vm show -g "$RG" -n "$NAME" -o none 2>/dev/null; then
+    echo "   The Azure CLI reported an error, but the VM was created. Continuing."
+    CREATED="$SIZE"; break
+  fi
+  CODE=$(grep -oE "$NEXT_SIZE" "$WORK/create.log" | head -1 || true)
+  if [ -n "$CODE" ]; then
+    echo "   $SIZE not available here ($CODE). Trying the next size…"
+    continue
+  fi
+  echo
+  echo "Azure's error:"
+  { grep -oE '"(code|message)": ?"[^"]{0,250}' "$WORK/create.log" | sort -u | head -8; } || true
+  { grep -E '^ERROR|ERROR:' "$WORK/create.log" | tail -5; } || true
+  cp "$WORK/create.log" "$HOME/reality-deploy-error.log" 2>/dev/null || true
+  die "VM creation failed. Full log saved to ~/reality-deploy-error.log
+Fix the cause above and run the same command again (it continues where it stopped),
+or delete everything with: bash azure/destroy.sh"
 done
 [ -n "$CREATED" ] || die "None of these sizes had capacity in $LOCATION: $SIZES. Try another LOCATION or SIZES."
 

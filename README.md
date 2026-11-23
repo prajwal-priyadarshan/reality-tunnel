@@ -151,7 +151,7 @@ To paste into Cloud Shell: `Ctrl+Shift+V` on Windows, `Cmd+V` on Mac, or right-c
 | Created | Why |
 |---|---|
 | Resource group `reality-vpn-rg` | A folder for everything below, so it's easy to delete later |
-| Ubuntu 24.04 VM `reality-vpn` | Your server, in Pune (Central India) by default |
+| Ubuntu 24.04 VM `reality-vpn` | Your server, in Pune (Central India) if your account allows it |
 | Static public IP | The address your devices connect to |
 | 30 GB disk | The server's drive |
 | Network rule for port 443 | The only open port. SSH and everything else stay closed |
@@ -160,9 +160,62 @@ On first boot the server installed **sing-box**, made **new private keys** that 
 server knows, and wrote your link.
 </details>
 
-> [!TIP]
-> If it says your region isn't allowed, it lists the regions you **can** use. Run it again
-> with one of them, for example `LOCATION=southindia bash azure/deploy.sh`.
+#### If India isn't allowed on your account
+
+Microsoft gives each student subscription its own list of allowed regions, and some
+accounts get **no Indian region**. The script then picks the closest allowed one by itself
+(Dubai `uaenorth` first, then Malaysia, Hong Kong and so on) and tells you:
+```
+==> India regions aren't allowed on this subscription (allowed: austriaeast eastasia
+    koreacentral malaysiawest uaenorth ). Using uaenorth, the closest.
+```
+This is fine: your exit IP is then in that country instead of India, and pages may be a
+little slower. To choose a region yourself:
+```bash
+LOCATION=malaysiawest bash azure/deploy.sh
+```
+
+#### If the script stops with an error
+
+It prints Azure's error and saves the full log to `~/reality-deploy-error.log`. Running
+`bash azure/deploy.sh` again carries on where it stopped. If it still fails, create the
+server by hand, one command at a time:
+
+<details>
+<summary><b>Create the server by hand (5 commands)</b></summary>
+
+1. Check whether a VM was created anyway. If this prints a table with `reality-vpn`, skip
+   to command 4.
+   ```bash
+   az vm list -g reality-vpn-rg -o table
+   ```
+2. Prepare the first-boot setup file. It prints nothing, which means it worked
+   (`ls -l ~/ci.sh` shows the file).
+   ```bash
+   cd ~/reality-tunnel && sed 's/__COVER__/www.microsoft.com/' server/cloud-init.sh > ~/ci.sh
+   ```
+3. Create the VM (2 to 4 minutes). Replace `uaenorth` with your region. Success prints a
+   block that includes `"powerState": "VM running"`. If it shows `SkuNotAvailable`, try
+   `--size Standard_B2als_v2` or `--size Standard_B1s`.
+   ```bash
+   az vm create -g reality-vpn-rg -n reality-vpn -l uaenorth --image Ubuntu2404 --size Standard_B2ats_v2 --admin-username azureuser --generate-ssh-keys --public-ip-sku Standard --nsg-rule NONE --os-disk-size-gb 30 --storage-sku StandardSSD_LRS --custom-data ~/ci.sh
+   ```
+4. Open port 443. It prints a long block; look for `"name": "open-port-443"` and
+   `"provisioningState": "Succeeded"`.
+   ```bash
+   az vm open-port -g reality-vpn-rg -n reality-vpn --port 443 --priority 100
+   ```
+5. Wait **3 minutes**, then get your link. If it prints nothing, wait 2 more minutes and
+   run it again.
+   ```bash
+   az vm run-command invoke -g reality-vpn-rg -n reality-vpn --command-id RunShellScript --scripts 'cat /root/vless_link.txt' --query 'value[0].message' -o tsv
+   ```
+</details>
+
+> [!NOTE]
+> If Cloud Shell shows a yellow *"not registered to Microsoft.CloudShell Namespace"*
+> message, it's only a warning. To clear it, run
+> `az provider register -n Microsoft.CloudShell` once.
 
 ### Step 4: Save your link
 
@@ -200,31 +253,90 @@ With the tunnel on:
 
 ## Mac
 
-Open **Terminal** (`Cmd+Space`, type *Terminal*). If you don't have
-[Homebrew](https://brew.sh), install it first. Then:
+Everything below runs in the **Terminal** app: press `Cmd+Space`, type *Terminal*, press
+**Enter**.
 
+### First time (about 5 minutes)
+
+**1. Install Homebrew.** Skip this if `brew --version` already prints a version.
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+It asks for your Mac password (see the note below). At the end it prints **Next steps**
+with 2 or 3 commands starting with `echo` and `eval`: copy and run those too.
+
+**2. Install sing-box:**
 ```bash
 brew install sing-box
-git clone https://github.com/prajwal-priyadarshan/reality-tunnel.git && cd reality-tunnel
-python3 client/make_client_config.py 'vless://…paste your link…'
 ```
 
-This writes `client/out/` with your link and two configs. That folder is git-ignored.
+**3. Download this repo:**
+```bash
+git clone https://github.com/prajwal-priyadarshan/reality-tunnel.git ~/reality-tunnel && cd ~/reality-tunnel
+```
 
-**Connect.** Pick a mode:
+**4. Make your configs.** Paste your own link between the single quotes:
+```bash
+python3 client/make_client_config.py 'vless://PASTE-YOUR-LINK-HERE'
+```
+It should print `wrote …/config-proxy.json` and `wrote …/config-tun.json`. They go in
+`client/out/`, which git ignores, so your keys never get uploaded.
+
+**5. Connect:**
+```bash
+bash client/connect.sh tun
+```
+You should see `Connecting (tun mode). Ctrl+C to stop.` **Keep this window open.** Closing
+it, or pressing `Ctrl+C`, disconnects.
+
+> [!NOTE]
+> **"Password:"** means your **Mac login password**, the one you unlock the Mac with.
+> Nothing appears while you type, not even dots. That's normal: type it and press
+> **Enter**. "Sorry, try again" means a typo. macOS asks because whole-Mac mode creates a
+> virtual network connection and changes how all traffic is routed.
+
+**6. Check it works.** Open **[ipinfo.io](https://ipinfo.io)**: it should show
+**Microsoft** and your server's country. Or test several sites at once in a second
+Terminal tab (`Cmd+T`):
+```bash
+cd ~/reality-tunnel && bash client/test.sh tun
+```
+
+### Every time after that
+
+```bash
+cd ~/reality-tunnel && bash client/connect.sh tun
+```
+
+### Connection modes
 
 | Mode | Command | Covers | Password? |
 |---|---|---|---|
-| Proxy | `bash client/connect.sh` | Browsers and most apps | No |
-| Whole-Mac | `bash client/connect.sh tun` | **Every** app, even when Chrome ignores the proxy | Mac password |
+| Whole-Mac (recommended) | `bash client/connect.sh tun` | **Every** app | Mac password |
+| Proxy | `bash client/connect.sh` | Browsers and most apps. Chrome sometimes ignores it | No |
 
-Keep the window open and press **Ctrl+C** to disconnect.
+<details>
+<summary><b>Optional: stop the password prompt</b></summary>
 
-**Test** in a second Terminal tab:
+Run this once. It asks for your password one last time:
 ```bash
-bash client/test.sh          # proxy mode
-bash client/test.sh tun      # whole-Mac mode
+echo "$USER ALL=(root) NOPASSWD: $(command -v sing-box)" | sudo tee /etc/sudoers.d/sing-box && sudo chmod 440 /etc/sudoers.d/sing-box
 ```
+This lets any program running as you start sing-box as administrator, which slightly
+weakens your Mac's security. Undo it with:
+```bash
+sudo rm /etc/sudoers.d/sing-box
+```
+</details>
+
+<details>
+<summary><b>Optional: no Terminal at all (Hiddify app)</b></summary>
+
+Install **Hiddify** from the App Store or
+[its releases page](https://github.com/hiddify/hiddify-app/releases) (the `.dmg` file).
+Copy your link, then **+** → **Add from clipboard** → connect. It works, but without this
+repo's speed and site fixes (see [Routing](#routing)).
+</details>
 
 <details>
 <summary><b>Optional: check how your network blocks things first</b></summary>
@@ -236,16 +348,6 @@ bash client/diagnose.sh
 "handshake reset → SNI filter" with only ports 80/443 open is exactly what this tunnel
 gets around. Sites that show **OK** can go in the `DIRECT` list for speed
 (see [Routing](#routing)).
-</details>
-
-<details>
-<summary><b>Optional: stop the password prompt in whole-Mac mode</b></summary>
-
-```bash
-echo "$USER ALL=(root) NOPASSWD: $(command -v sing-box)" | sudo tee /etc/sudoers.d/sing-box && sudo chmod 440 /etc/sudoers.d/sing-box
-```
-This lets any program running as you start sing-box as root, which slightly weakens your
-Mac's security. Undo it with `sudo rm /etc/sudoers.d/sing-box`.
 </details>
 
 ---
@@ -391,7 +493,9 @@ file**, so you can't be billed beyond the credit.
 |---|---|
 | Sign-up says your college isn't recognised | Choose to verify with a student ID or document |
 | Cloud Shell asks to create storage | Pick **No storage account required** |
-| "Region not allowed" | Use a region from the list it prints: `LOCATION=… bash azure/deploy.sh` |
+| "Region not allowed" | Leave out `LOCATION=` and the script picks the closest allowed region, or choose one from the list it prints |
+| Script stops right after "Creating VM" | Run it again, or follow [Create the server by hand](#if-the-script-stops-with-an-error) |
+| "Resource group already exists in …" | Run the `LOCATION=…` command it prints, or `bash azure/destroy.sh` and start again |
 | All sizes "not available" | Try another region, or `SIZES="Standard_B2s" bash azure/deploy.sh` |
 | Setup didn't finish in time | Wait a few minutes, then fetch the link with the command in [Step 4](#step-4-save-your-link) |
 </details>
